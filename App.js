@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
   Modal, Alert, Vibration, Animated, Switch, RefreshControl, Platform
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio } from 'expo-av';
 import { StatusBar } from 'expo-status-bar';
@@ -260,259 +260,261 @@ export default function App() {
   const laranjaCount = posicoes.filter(p => p.isLaranja).length;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <StatusBar style="light" />
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <StatusBar style="light" />
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Swing V23.1</Text>
-        <View style={styles.alertHeader}>
-          {raRbCount > 0 && <Text style={styles.alertHeaderTextRA}>🔄 {raRbCount} RA/RB</Text>}
-          {laranjaCount > 0 && <Text style={styles.alertHeaderTextLaranja}>⚠️ {laranjaCount}</Text>}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Swing V23.1</Text>
+          <View style={styles.alertHeader}>
+            {raRbCount > 0 && <Text style={styles.alertHeaderTextRA}>🔄 {raRbCount} RA/RB</Text>}
+            {laranjaCount > 0 && <Text style={styles.alertHeaderTextLaranja}>⚠️ {laranjaCount}</Text>}
+          </View>
+          <TouchableOpacity onPress={() => setShowConfig(true)} style={styles.configBtn}>
+            <Text style={styles.configBtnText}>⚙️</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={() => setShowConfig(true)} style={styles.configBtn}>
-          <Text style={styles.configBtnText}>⚙️</Text>
-        </TouchableOpacity>
-      </View>
 
-      <View style={styles.totalCard}>
-        <Text style={styles.totalLabel}>TOTAL CARTEIRA</Text>
-        <Text style={styles.totalValue}>R$ {totalAtualGeral.toFixed(2)}</Text>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalSub}>Investido R$ {totalInvestido.toFixed(2)}</Text>
-          <Text style={[styles.totalSub, { color: lucroTotal >= 0 ? '#30D158' : '#FF453A' }]}>
-            {lucroTotal >= 0 ? '▲' : '▼'} {lucroTotal.toFixed(2)} ({lucroTotalPct.toFixed(2)}%)
-          </Text>
+        <View style={styles.totalCard}>
+          <Text style={styles.totalLabel}>TOTAL CARTEIRA</Text>
+          <Text style={styles.totalValue}>R$ {totalAtualGeral.toFixed(2)}</Text>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalSub}>Investido R$ {totalInvestido.toFixed(2)}</Text>
+            <Text style={[styles.totalSub, { color: lucroTotal >= 0 ? '#30D158' : '#FF453A' }]}>
+              {lucroTotal >= 0 ? '▲' : '▼'} {lucroTotal.toFixed(2)} ({lucroTotalPct.toFixed(2)}%)
+            </Text>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.actionsRow}>
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: '#30D158' }]}
-          onPress={() => { setOpForm({ acao: 'compra', ticker: '', qtd: '', valor: '' }); setShowOpModal(true); }}
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: '#30D158' }]}
+            onPress={() => { setOpForm({ acao: 'compra', ticker: '', qtd: '', valor: '' }); setShowOpModal(true); }}
+          >
+            <Text style={styles.actionBtnText}>COMPRA</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: '#FF3B30' }]}
+            onPress={() => { setOpForm({ acao: 'venda', ticker: '', qtd: '', valor: '' }); setShowOpModal(true); }}
+          >
+            <Text style={styles.actionBtnText}>VENDA</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          style={styles.list}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
-          <Text style={styles.actionBtnText}>COMPRA</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: '#FF3B30' }]}
-          onPress={() => { setOpForm({ acao: 'venda', ticker: '', qtd: '', valor: '' }); setShowOpModal(true); }}
-        >
-          <Text style={styles.actionBtnText}>VENDA</Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        style={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        {posicoes.map(p => {
-          const isAlertCard = p.isRA || p.isRB;
-          return (
-            <Animated.View
-              key={p.ticker}
-              style={isAlertCard ? { transform: [{ scale: pulseAnim }] } : {}}
-            >
-              <View style={[styles.card, p.isLaranja && styles.cardLaranja, isAlertCard && styles.cardRA]}>
-                {isAlertCard && (
-                  <View style={styles.badgeRA}>
-                    <Text style={styles.badgeRAText}>
-                      {p.isRA ? '🔄 RA - REVERSÃO DE ALTA' : '🔻 RB - REVERSÃO DE BAIXA'}
-                    </Text>
-                  </View>
-                )}
-                <TouchableOpacity
-                  style={styles.closeX}
-                  onPress={() => { setFimForm({ ticker: p.ticker, preco: String(p.atual) }); setShowFimModal(true); }}
-                >
-                  <Text style={styles.closeXText}>✕</Text>
-                </TouchableOpacity>
-
-                <View style={styles.cardRow}>
-                  <Text style={styles.ticker}>{p.ticker}</Text>
-                  <View style={[styles.badgeTipo, { backgroundColor: p.tipo === 'V' ? '#FF9500' : '#1A9A8C' }]}>
-                    <Text style={styles.badgeTipoText}>{p.tipo}</Text>
-                  </View>
-                  {p.isLaranja && (
-                    <View style={styles.badgeLaranja}>
-                      <Text style={styles.badgeLaranjaText}>⚠️ 75%</Text>
+          {posicoes.map(p => {
+            const isAlertCard = p.isRA || p.isRB;
+            return (
+              <Animated.View
+                key={p.ticker}
+                style={isAlertCard ? { transform: [{ scale: pulseAnim }] } : {}}
+              >
+                <View style={[styles.card, p.isLaranja && styles.cardLaranja, isAlertCard && styles.cardRA]}>
+                  {isAlertCard && (
+                    <View style={styles.badgeRA}>
+                      <Text style={styles.badgeRAText}>
+                        {p.isRA ? '🔄 RA - REVERSÃO DE ALTA' : '🔻 RB - REVERSÃO DE BAIXA'}
+                      </Text>
                     </View>
                   )}
+                  <TouchableOpacity
+                    style={styles.closeX}
+                    onPress={() => { setFimForm({ ticker: p.ticker, preco: String(p.atual) }); setShowFimModal(true); }}
+                  >
+                    <Text style={styles.closeXText}>✕</Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.cardRow}>
+                    <Text style={styles.ticker}>{p.ticker}</Text>
+                    <View style={[styles.badgeTipo, { backgroundColor: p.tipo === 'V' ? '#FF9500' : '#1A9A8C' }]}>
+                      <Text style={styles.badgeTipoText}>{p.tipo}</Text>
+                    </View>
+                    {p.isLaranja && (
+                      <View style={styles.badgeLaranja}>
+                        <Text style={styles.badgeLaranjaText}>⚠️ 75%</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.cardRow}>
+                    <Text style={styles.cardText}>
+                      Qtd {p.qtd} | {p.tipo === 'V' ? 'Vendido' : 'Comprado'} {p.entrada.toFixed(2)} → {p.atual.toFixed(2)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.cardRow}>
+                    <Text style={styles.cardSmall}>Lucro Max R$ {p.lucroMax.toFixed(2)}</Text>
+                  </View>
+
+                  <View style={styles.cardRowSpace}>
+                    <Text style={styles.cardTotal}>Total R$ {p.totalAtual.toFixed(2)}</Text>
+                    <Text style={[styles.cardLucro, { color: p.lucro >= 0 ? '#30D158' : '#FF3B30' }]}>
+                      {p.lucro >= 0 ? '▲' : '▼'} {p.lucro.toFixed(2)} ({p.lucroPct.toFixed(2)}%)
+                    </Text>
+                  </View>
                 </View>
+              </Animated.View>
+            );
+          })}
+          <View style={{ height: 100 }} />
+        </ScrollView>
 
-                <View style={styles.cardRow}>
-                  <Text style={styles.cardText}>
-                    Qtd {p.qtd} | {p.tipo === 'V' ? 'Vendido' : 'Comprado'} {p.entrada.toFixed(2)} → {p.atual.toFixed(2)}
-                  </Text>
-                </View>
-
-                <View style={styles.cardRow}>
-                  <Text style={styles.cardSmall}>Lucro Max R$ {p.lucroMax.toFixed(2)}</Text>
-                </View>
-
-                <View style={styles.cardRowSpace}>
-                  <Text style={styles.cardTotal}>Total R$ {p.totalAtual.toFixed(2)}</Text>
-                  <Text style={[styles.cardLucro, { color: p.lucro >= 0 ? '#30D158' : '#FF3B30' }]}>
-                    {p.lucro >= 0 ? '▲' : '▼'} {p.lucro.toFixed(2)} ({p.lucroPct.toFixed(2)}%)
-                  </Text>
-                </View>
-              </View>
-            </Animated.View>
-          );
-        })}
-        <View style={{ height: 100 }} />
-      </ScrollView>
-
-      {/* Modal COMPRA/VENDA */}
-      <Modal visible={showOpModal} transparent animationType="slide">
-        <View style={styles.modalBg}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{opForm.acao.toUpperCase()}</Text>
-            <TextInput
-              placeholder="Ticker"
-              value={opForm.ticker}
-              onChangeText={v => setOpForm({ ...opForm, ticker: v.toUpperCase() })}
-              style={styles.input}
-            />
-            <TextInput
-              placeholder="Quantidade"
-              keyboardType="numeric"
-              value={opForm.qtd}
-              onChangeText={v => setOpForm({ ...opForm, qtd: v })}
-              style={styles.input}
-            />
-            <TextInput
-              placeholder="Valor"
-              keyboardType="numeric"
-              value={opForm.valor}
-              onChangeText={v => setOpForm({ ...opForm, valor: v })}
-              style={styles.input}
-            />
-            <View style={styles.modalRow}>
-              <TouchableOpacity style={styles.modalCancel} onPress={() => setShowOpModal(false)}>
-                <Text style={styles.modalCancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalConfirm}
-                onPress={async () => {
-                  const txt = `/op ${opForm.ticker} ${opForm.qtd} ${opForm.valor} ${opForm.acao}`;
-                  if (await enviarTelegram(txt)) setShowOpModal(false);
-                }}
-              >
-                <Text style={styles.modalConfirmText}>Enviar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal FECHAR */}
-      <Modal visible={showFimModal} transparent animationType="slide">
-        <View style={styles.modalBg}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>FECHAR POSIÇÃO</Text>
-            <TextInput
-              placeholder="Ticker"
-              value={fimForm.ticker}
-              onChangeText={v => setFimForm({ ...fimForm, ticker: v.toUpperCase() })}
-              style={styles.input}
-            />
-            <TextInput
-              placeholder="Preço fechamento"
-              keyboardType="numeric"
-              value={fimForm.preco}
-              onChangeText={v => setFimForm({ ...fimForm, preco: v })}
-              style={styles.input}
-            />
-            <View style={styles.modalRow}>
-              <TouchableOpacity style={styles.modalCancel} onPress={() => setShowFimModal(false)}>
-                <Text style={styles.modalCancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalConfirm, { backgroundColor: '#FF3B30' }]}
-                onPress={async () => {
-                  const txt = `/fim ${fimForm.ticker} ${fimForm.preco}`;
-                  if (await enviarTelegram(txt)) setShowFimModal(false);
-                }}
-              >
-                <Text style={styles.modalConfirmText}>Fechar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal CONFIG */}
-      <Modal visible={showConfig} transparent animationType="slide">
-        <View style={styles.modalBg}>
-          <View style={[styles.modalCard, { maxHeight: '90%' }]}>
-            <ScrollView>
-              <Text style={styles.modalTitle}>Configurações V23.1</Text>
-
-              <Text style={styles.label}>Firebase URL</Text>
+        {/* Modal COMPRA/VENDA */}
+        <Modal visible={showOpModal} transparent animationType="slide">
+          <View style={styles.modalBg}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>{opForm.acao.toUpperCase()}</Text>
               <TextInput
-                value={config.firebaseUrl}
-                onChangeText={v => setConfig({ ...config, firebaseUrl: v })}
+                placeholder="Ticker"
+                value={opForm.ticker}
+                onChangeText={v => setOpForm({ ...opForm, ticker: v.toUpperCase() })}
                 style={styles.input}
-                autoCapitalize="none"
-                autoCorrect={false}
               />
-
-              <Text style={styles.label}>Telegram Bot Token</Text>
               <TextInput
-                value={config.telegramToken}
-                onChangeText={v => setConfig({ ...config, telegramToken: v })}
+                placeholder="Quantidade"
+                keyboardType="numeric"
+                value={opForm.qtd}
+                onChangeText={v => setOpForm({ ...opForm, qtd: v })}
                 style={styles.input}
-                autoCapitalize="none"
-                autoCorrect={false}
               />
-
-              <Text style={styles.label}>Telegram Chat ID</Text>
               <TextInput
-                value={config.telegramChatId}
-                onChangeText={v => setConfig({ ...config, telegramChatId: v })}
+                placeholder="Valor"
+                keyboardType="numeric"
+                value={opForm.valor}
+                onChangeText={v => setOpForm({ ...opForm, valor: v })}
                 style={styles.input}
-                autoCapitalize="none"
-                autoCorrect={false}
               />
-
-              <Text style={[styles.label, { marginTop: 16, fontSize: 14 }]}>🔊 Alertas Sonoros</Text>
-
-              <View style={styles.switchRow}>
-                <Text style={styles.label}>⚠️ Som Tag Laranja (&lt;75% Max)</Text>
-                <Switch
-                  value={config.somLaranjaAtivo}
-                  onValueChange={v => setConfig({ ...config, somLaranjaAtivo: v })}
-                />
-              </View>
-
-              <View style={styles.switchRow}>
-                <Text style={styles.label}>🚨 Som RA/RB (mesmo som urgência)</Text>
-                <Switch
-                  value={config.somRAAtivo}
-                  onValueChange={v => setConfig({ ...config, somRAAtivo: v })}
-                />
-              </View>
-
-              <Text style={styles.helpText}>
-                Formato Firebase: TICKER QTD ENTRADA ATUAL TIPO LUCROMAX [RA|RB];{'\n'}
-                Ex: VALEV694 1000 0.72 0.53 V 229.99 RA{'\n'}
-                Ex: PETR4 100 42.5 44.2 C 150.00 RB{'\n'}
-                RA=Reversão Alta, RB=Reversão Baixa - mesmo som + borda vermelha pulsante.{'\n'}
-                Cooldown 5min pra não spammar.
-              </Text>
-
               <View style={styles.modalRow}>
-                <TouchableOpacity style={styles.modalCancel} onPress={() => setShowConfig(false)}>
-                  <Text style={styles.modalCancelText}>Fechar</Text>
+                <TouchableOpacity style={styles.modalCancel} onPress={() => setShowOpModal(false)}>
+                  <Text style={styles.modalCancelText}>Cancelar</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.modalConfirm} onPress={salvarConfig}>
-                  <Text style={styles.modalConfirmText}>Salvar e Testar</Text>
+                <TouchableOpacity
+                  style={styles.modalConfirm}
+                  onPress={async () => {
+                    const txt = `/op ${opForm.ticker} ${opForm.qtd} ${opForm.valor} ${opForm.acao}`;
+                    if (await enviarTelegram(txt)) setShowOpModal(false);
+                  }}
+                >
+                  <Text style={styles.modalConfirmText}>Enviar</Text>
                 </TouchableOpacity>
               </View>
-            </ScrollView>
+            </View>
           </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+        </Modal>
+
+        {/* Modal FECHAR */}
+        <Modal visible={showFimModal} transparent animationType="slide">
+          <View style={styles.modalBg}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>FECHAR POSIÇÃO</Text>
+              <TextInput
+                placeholder="Ticker"
+                value={fimForm.ticker}
+                onChangeText={v => setFimForm({ ...fimForm, ticker: v.toUpperCase() })}
+                style={styles.input}
+              />
+              <TextInput
+                placeholder="Preço fechamento"
+                keyboardType="numeric"
+                value={fimForm.preco}
+                onChangeText={v => setFimForm({ ...fimForm, preco: v })}
+                style={styles.input}
+              />
+              <View style={styles.modalRow}>
+                <TouchableOpacity style={styles.modalCancel} onPress={() => setShowFimModal(false)}>
+                  <Text style={styles.modalCancelText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalConfirm, { backgroundColor: '#FF3B30' }]}
+                  onPress={async () => {
+                    const txt = `/fim ${fimForm.ticker} ${fimForm.preco}`;
+                    if (await enviarTelegram(txt)) setShowFimModal(false);
+                  }}
+                >
+                  <Text style={styles.modalConfirmText}>Fechar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal CONFIG */}
+        <Modal visible={showConfig} transparent animationType="slide">
+          <View style={styles.modalBg}>
+            <View style={[styles.modalCard, { maxHeight: '90%' }]}>
+              <ScrollView>
+                <Text style={styles.modalTitle}>Configurações V23.1</Text>
+
+                <Text style={styles.label}>Firebase URL</Text>
+                <TextInput
+                  value={config.firebaseUrl}
+                  onChangeText={v => setConfig({ ...config, firebaseUrl: v })}
+                  style={styles.input}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+
+                <Text style={styles.label}>Telegram Bot Token</Text>
+                <TextInput
+                  value={config.telegramToken}
+                  onChangeText={v => setConfig({ ...config, telegramToken: v })}
+                  style={styles.input}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+
+                <Text style={styles.label}>Telegram Chat ID</Text>
+                <TextInput
+                  value={config.telegramChatId}
+                  onChangeText={v => setConfig({ ...config, telegramChatId: v })}
+                  style={styles.input}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+
+                <Text style={[styles.label, { marginTop: 16, fontSize: 14 }]}>🔊 Alertas Sonoros</Text>
+
+                <View style={styles.switchRow}>
+                  <Text style={styles.label}>⚠️ Som Tag Laranja (&lt;75% Max)</Text>
+                  <Switch
+                    value={config.somLaranjaAtivo}
+                    onValueChange={v => setConfig({ ...config, somLaranjaAtivo: v })}
+                  />
+                </View>
+
+                <View style={styles.switchRow}>
+                  <Text style={styles.label}>🚨 Som RA/RB (mesmo som urgência)</Text>
+                  <Switch
+                    value={config.somRAAtivo}
+                    onValueChange={v => setConfig({ ...config, somRAAtivo: v })}
+                  />
+                </View>
+
+                <Text style={styles.helpText}>
+                  Formato Firebase: TICKER QTD ENTRADA ATUAL TIPO LUCROMAX [RA|RB];{'\n'}
+                  Ex: VALEV694 1000 0.72 0.53 V 229.99 RA{'\n'}
+                  Ex: PETR4 100 42.5 44.2 C 150.00 RB{'\n'}
+                  RA=Reversão Alta, RB=Reversão Baixa - mesmo som + borda vermelha pulsante.{'\n'}
+                  Cooldown 5min pra não spammar.
+                </Text>
+
+                <View style={styles.modalRow}>
+                  <TouchableOpacity style={styles.modalCancel} onPress={() => setShowConfig(false)}>
+                    <Text style={styles.modalCancelText}>Fechar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.modalConfirm} onPress={salvarConfig}>
+                    <Text style={styles.modalConfirmText}>Salvar e Testar</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
