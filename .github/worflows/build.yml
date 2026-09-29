@@ -1,1 +1,53 @@
+name: Build APK V23.1
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalar dependências (gera package-lock se não existir)
+        run: npm install --no-audit --no-fund
+
+      - name: Expo prebuild (Android)
+        run: npx expo prebuild --platform android --clean
+
+      - name: Fix colors.xml (obrigatório Expo 50)
+        run: |
+          mkdir -p android/app/src/main/res/values
+          cat > android/app/src/main/res/values/colors.xml << 'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+            <color name="splashscreen_background">#000000</color>
+            <color name="colorPrimary">#000000</color>
+            <color name="colorPrimaryDark">#000000</color>
+            <color name="colorAccent">#FF9500</color>
+            <color name="navigationBarColor">#000000</color>
+          </resources>
+          XML
+
+      - name: Build APK (release)
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-v23-1-RA-RB
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30
