@@ -254,8 +254,13 @@ export default function App() {
 
   const totalInvestido = posicoes.reduce((s, p) => s + p.investido, 0);
   const totalAtualGeral = posicoes.reduce((s, p) => s + p.totalAtual, 0);
-  const lucroTotal = totalAtualGeral - totalInvestido;
+
+  // ✅ CORREÇÃO: soma o lucro de cada posição (já vem com o sinal correto do parseCarteira)
+  // Não usar `totalAtualGeral - totalInvestido`, pois isso só vale para posições de COMPRA (C).
+  // Para posições de VENDA (V), o lucro tem o sinal invertido e a conta quebrava.
+  const lucroTotal = posicoes.reduce((s, p) => s + p.lucro, 0);
   const lucroTotalPct = totalInvestido ? (lucroTotal / totalInvestido) * 100 : 0;
+
   const raRbCount = posicoes.filter(p => p.isRA || p.isRB).length;
   const laranjaCount = posicoes.filter(p => p.isLaranja).length;
 
