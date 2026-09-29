@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Swing V23.1 RA/RB",
+    "slug": "swing-v23-1",
+    "version": "23.1.0",
+    "orientation": "portrait",
+    "platforms": ["android"],
+    "android": {
+      "package": "com.antonio.swingv23",
+      "versionCode": 231,
+      "permissions": ["VIBRATE", "INTERNET"]
+    },
+    "plugins": [
+      ["expo-av", { "microphonePermission": false }]
+    ]
+  }
+}
